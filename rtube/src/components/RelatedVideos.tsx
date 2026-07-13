@@ -13,7 +13,6 @@ interface RelatedVideosProps {
   }>;
 }
 export default function RelatedVideos({ videos }: RelatedVideosProps) {
-   console.log("RelatedVideos received:", videos.length);
   return (
     <div className="space-y-2">
       {videos.map((video) => (
