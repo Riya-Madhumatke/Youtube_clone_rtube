@@ -5,14 +5,30 @@ import { Button } from "./ui/button";
 import { formatDistanceToNow } from "date-fns";
 import { useUser } from "@/lib/AuthContext";
 import axiosInstance from "@/lib/axiosinstance";
+import { ThumbsUp, ThumbsDown, Flag } from "lucide-react";
+import ReportDialog from "./ReportDialog";
 interface Comment {
   _id: string;
   videoid: string;
-  userid: string;
+  userid: {
+    _id: string;
+    name: string;
+    image: string;
+  };
+
   commentbody: string;
   usercommented: string;
   commentedon: string;
+
+  likes: string[];
+  dislikes: string[];
+
+  preferredLanguage: string;
+  translatedText?: string;
+  translatedLanguage?: string;
+  
 }
+
 const Comments = ({ videoId }: any) => {
   const [comments, setComments] = useState<Comment[]>([]);
   const [newComment, setNewComment] = useState("");
@@ -21,6 +37,9 @@ const Comments = ({ videoId }: any) => {
   const [editText, setEditText] = useState("");
   const { user } = useUser();
   const [loading, setLoading] = useState(true);
+  const [reportDialogOpen, setReportDialogOpen] = useState(false);
+  const [selectedCommentId, setSelectedCommentId] = useState("");
+  const [translatingId, setTranslatingId] = useState("");
   const fetchedComments = [
     {
       _id: "1",
@@ -46,6 +65,7 @@ const Comments = ({ videoId }: any) => {
   const loadComments = async () => {
     try {
       const res = await axiosInstance.get(`/comment/${videoId}`);
+      console.log(res.data);
       setComments(res.data);
     } catch (error) {
       console.log(error);
@@ -67,16 +87,10 @@ const Comments = ({ videoId }: any) => {
         commentbody: newComment,
         usercommented: user.name,
       });
-      if (res.data.comment) {
-        const newCommentObj: Comment = {
-          _id: Date.now().toString(),
-          videoid: videoId,
-          userid: user._id,
-          commentbody: newComment,
-          usercommented: user.name || "Anonymous",
-          commentedon: new Date().toISOString(),
-        };
-        setComments([newCommentObj, ...comments]);
+     if (res.data.comment) {
+  await loadComments();
+
+       setNewComment("");
       }
       setNewComment("");
     } catch (error) {
@@ -122,6 +136,136 @@ const Comments = ({ videoId }: any) => {
       console.log(error);
     }
   };
+
+  const handleLike = async (commentId: string) => {
+  if (!user) return;
+
+  try {
+    const res = await axiosInstance.post(`/comment/like/${commentId}`, {
+      userId: user._id,
+    });
+    await loadComments();
+
+    setComments((prev) =>
+      prev.map((comment) => {
+        if (comment._id !== commentId) return comment;
+
+        const alreadyLiked = comment.likes.includes(user._id);
+
+        let updatedLikes = [...comment.likes];
+        let updatedDislikes = [...comment.dislikes];
+
+        if (alreadyLiked) {
+          updatedLikes = updatedLikes.filter((id) => id !== user._id);
+        } else {
+          updatedLikes.push(user._id);
+          updatedDislikes = updatedDislikes.filter(
+            (id) => id !== user._id
+          );
+        }
+
+        return {
+          ...comment,
+          likes: updatedLikes,
+          dislikes: updatedDislikes,
+        };
+      })
+    );
+  } catch (error) {
+    console.log(error);
+  }
+};
+const handleDislike = async (commentId: string) => {
+  if (!user) return;
+
+  try {
+    await axiosInstance.post(`/comment/dislike/${commentId}`, {
+      userId: user._id,
+    });
+    await loadComments();
+
+    setComments((prev) =>
+      prev.map((comment) => {
+        if (comment._id !== commentId) return comment;
+
+        const alreadyDisliked = comment.dislikes.includes(user._id);
+
+        let updatedLikes = [...comment.likes];
+        let updatedDislikes = [...comment.dislikes];
+
+        if (alreadyDisliked) {
+          updatedDislikes = updatedDislikes.filter(
+            (id) => id !== user._id
+          );
+        } else {
+          updatedDislikes.push(user._id);
+          updatedLikes = updatedLikes.filter(
+            (id) => id !== user._id
+          );
+        }
+
+        return {
+          ...comment,
+          likes: updatedLikes,
+          dislikes: updatedDislikes,
+        };
+      })
+    );
+  } catch (error) {
+    console.log(error);
+  }
+};
+
+const handleReport = async (reason: string) => {
+  if (!user || !selectedCommentId) return;
+
+  try {
+    const res = await axiosInstance.post(
+      `/comment/report/${selectedCommentId}`,
+      {
+        userId: user._id,
+        reason,
+      }
+    );
+
+    console.log(res.data);
+
+    await loadComments();
+
+  } catch (error: any) {
+    console.log(error);
+  }
+};
+
+const handleTranslate = async (commentId: string) => {
+  try {
+    setTranslatingId(commentId);
+
+   const res = await axiosInstance.post(
+  `/comment/translate/${commentId}`,
+  {
+    targetLanguage: user?.preferredLanguage || "en",
+  }
+);
+
+    setComments((prev) =>
+      prev.map((comment) =>
+        comment._id === commentId
+          ? {
+              ...comment,
+              translatedText: res.data.translatedText,
+              translatedLanguage: "en",
+            }
+          : comment
+      )
+    );
+  } catch (error) {
+    console.log(error);
+  } finally {
+    setTranslatingId("");
+  }
+};
+
   return (
     <div className="space-y-6">
       <h2 className="text-xl font-semibold">{comments.length} Comments</h2>
@@ -166,13 +310,13 @@ const Comments = ({ videoId }: any) => {
           comments.map((comment) => (
             <div key={comment._id} className="flex gap-4">
               <Avatar className="w-10 h-10">
-                <AvatarImage src="/placeholder.svg?height=40&width=40" />
-                <AvatarFallback>{comment.usercommented[0]}</AvatarFallback>
+                <AvatarImage  src={comment.userid.image}/>
+                <AvatarFallback>{comment.userid.name[0]}</AvatarFallback>
               </Avatar>
               <div className="flex-1">
                 <div className="flex items-center gap-2 mb-1">
                   <span className="font-medium text-sm">
-                    {comment.usercommented}
+                    {comment.userid.name}
                   </span>
                   <span className="text-xs text-gray-600">
                     {formatDistanceToNow(new Date(comment.commentedon))} ago
@@ -204,25 +348,102 @@ const Comments = ({ videoId }: any) => {
                     </div>
                   </div>
                 ) : (
-                  <>
-                    <p className="text-sm">{comment.commentbody}</p>
-                    {comment.userid === user?._id && (
-                      <div className="flex gap-2 mt-2 text-sm text-gray-500">
-                        <button onClick={() => handleEdit(comment)}>
-                          Edit
-                        </button>
-                        <button onClick={() => handleDelete(comment._id)}>
-                          Delete
-                        </button>
-                      </div>
-                    )}
-                  </>
+                 <>
+  <p className="text-sm">
+  {comment.commentbody}
+  </p>
+
+  {comment.translatedText && (
+  <div className="mt-2 rounded-lg bg-gray-100 dark:bg-gray-800 p-3">
+    <p className="text-xs text-gray-500 mb-1">
+      Translated
+    </p>
+
+    <p className="text-sm">
+      {comment.translatedText}
+    </p>
+  </div>
+)}
+
+  <div className="flex items-center gap-4 mt-2 text-sm text-gray-600">
+
+    <button
+      onClick={() => handleLike(comment._id)}
+      className="flex items-center gap-1 hover:text-blue-600 transition"
+    >
+      <ThumbsUp
+        size={16}
+        className={
+          comment.likes.includes(user?._id || "")
+            ? "fill-blue-600 text-blue-600"
+            : ""
+        }
+      />
+      {comment.likes.length}
+    </button>
+
+    <button
+      onClick={() => handleDislike(comment._id)}
+      className="flex items-center gap-1 hover:text-red-600 transition"
+    >
+      <ThumbsDown
+        size={16}
+        className={
+          comment.dislikes.includes(user?._id || "")
+            ? "fill-red-600 text-red-600"
+            : ""
+        }
+      />
+      {comment.dislikes.length}
+    </button>
+
+    <button
+  onClick={() => handleTranslate(comment._id)}
+  disabled={translatingId === comment._id}
+  className="text-blue-600 hover:underline"
+>
+  {translatingId === comment._id
+    ? "Translating..."
+    : "🌍 Translate"}
+</button>
+
+    
+   {comment.userid._id !== user?._id && (
+  <button
+    onClick={() => {
+      setSelectedCommentId(comment._id);
+      setReportDialogOpen(true);
+    }}
+    className="flex items-center gap-1 hover:text-red-600 transition"
+  >
+    <Flag size={16} />
+    Report
+  </button>
+)}
+{comment.userid._id=== user?._id && (
+      <>
+        <button onClick={() => handleEdit(comment)}>
+          Edit
+        </button>
+
+        <button onClick={() => handleDelete(comment._id)}>
+          Delete
+        </button>
+      </>
+    )}
+  </div>
+</>
                 )}
               </div>
             </div>
           ))
         )}
       </div>
+      <ReportDialog
+  open={reportDialogOpen}
+  onClose={() => setReportDialogOpen(false)}
+  onSubmit={handleReport}
+/>
     </div>
   );
 };

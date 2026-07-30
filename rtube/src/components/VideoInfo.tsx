@@ -8,7 +8,9 @@
     Share,
     ThumbsDown,
     ThumbsUp,
+    Users
   } from "lucide-react";
+  import { useRouter } from "next/router";
   import { formatDistanceToNow } from "date-fns";
   import { useUser } from "@/lib/AuthContext";
   import axiosInstance from "@/lib/axiosinstance";
@@ -21,7 +23,9 @@
     const [isDisliked, setIsDisliked] = useState(false);
     const [showFullDescription, setShowFullDescription] = useState(false);
     const { user } = useUser();
+    const router = useRouter();
     const [isWatchLater, setIsWatchLater] = useState(false);
+    
 
     
     useEffect(() => {
@@ -148,6 +152,33 @@ fetch(fileUrl)
     }
   };
 
+  const handleStartWatchParty = async () => {
+  if (!user) {
+    toast.error("Please login first.");
+    return;
+  }
+
+  try {
+    const res = await axiosInstance.post("/watch-party/create", {
+      hostId: user._id,
+      videoId: video._id,
+    });
+    console.log(res.data);
+    toast.success("Watch Party Created!");
+
+    router.push(
+      `/watch-party/${res.data.party.partyCode}`
+    );
+  } catch (error: any) {
+    console.error(error);
+
+    toast.error(
+      error.response?.data?.message ||
+        "Failed to create Watch Party"
+    );
+  }
+};
+
   return (
     <div className="space-y-4">
         <h1 className="text-xl font-semibold">{video.videotitle}</h1>
@@ -159,12 +190,12 @@ fetch(fileUrl)
             </Avatar>
             <div>
               <h3 className="font-medium">{video.videochanel}</h3>
-              <p className="text-sm text-gray-600">1.2M subscribers</p>
+              <p className="text-sm text-gray-600 dark:text-gray-400">1.2M subscribers</p>
             </div>
             <Button className="ml-4">Subscribe</Button>
           </div>
           <div className="flex items-center gap-2">
-            <div className="flex items-center bg-gray-100 rounded-full">
+            <div className="flex items-center rounded-full bg-gray-100 dark:bg-[#272727]">
               <Button
                 variant="ghost"
                 size="sm"
@@ -178,7 +209,7 @@ fetch(fileUrl)
                 />
                 {likes.toLocaleString()}
               </Button>
-              <div className="w-px h-6 bg-gray-300" />
+              <div className="w-px h-6 bg-gray-300 dark:bg-gray-600" />
               <Button
                 variant="ghost"
                 size="sm"
@@ -196,7 +227,7 @@ fetch(fileUrl)
             <Button
               variant="ghost"
               size="sm"
-              className={`bg-gray-100 rounded-full ${
+              className={`rounded-full bg-gray-100 dark:bg-[#272727]${
                 isWatchLater ? "text-primary" : ""
               }`}
               onClick={handleWatchLater}
@@ -207,15 +238,22 @@ fetch(fileUrl)
             <Button
               variant="ghost"
               size="sm"
-              className="bg-gray-100 rounded-full"
-            >
+             className="rounded-full bg-gray-100 dark:bg-[#272727]"            >
               <Share className="w-5 h-5 mr-2" />
               Share
             </Button>
             <Button
+  variant="ghost"
+  size="sm"
+className="rounded-full bg-gray-100 dark:bg-[#272727]"  onClick={handleStartWatchParty}
+>
+  <Users className="w-5 h-5 mr-2" />
+  Watch Party
+</Button>
+            <Button
               variant="ghost"
               size="sm"
-              className="bg-gray-100 rounded-full"
+              className="rounded-full bg-gray-100 dark:bg-[#272727]"
               onClick={handleDownload}
             >
               <Download className="w-5 h-5 mr-2" />
@@ -230,7 +268,7 @@ fetch(fileUrl)
             </Button>
           </div>
         </div>
-        <div className="bg-gray-100 rounded-lg p-4">
+        <div className="rounded-lg p-4 bg-gray-100 dark:bg-[#272727]">
           <div className="flex gap-4 text-sm font-medium mb-2">
             <span>{video.views.toLocaleString()} views</span>
             <span>{formatDistanceToNow(new Date(video.createdAt))} ago</span>

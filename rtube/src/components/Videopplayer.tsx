@@ -9,6 +9,7 @@ import {
   Volume2,
   Maximize,
 } from "lucide-react";
+import { socket } from "@/socket/socket";
 
 interface VideoPlayerProps {
   video: {
@@ -21,9 +22,14 @@ interface VideoPlayerProps {
     _id: string;
     videotitle: string;
   } | null;
+
+   isWatchParty?: boolean;
+  partyCode?: string;
+  isHost?: boolean;
 }
 
-export default function VideoPlayer({ video, nextVideo, }: VideoPlayerProps) {
+export default function VideoPlayer({ video, nextVideo, isWatchParty = false,
+  partyCode, isHost = false}: VideoPlayerProps) {
   const videoRef = useRef<HTMLVideoElement>(null);
   const playerRef = useRef<HTMLDivElement>(null);
   const [isPlaying, setIsPlaying] = useState(false);
@@ -36,19 +42,37 @@ export default function VideoPlayer({ video, nextVideo, }: VideoPlayerProps) {
   const [lastTap, setLastTap] = useState(0);
   const router = useRouter();
 
-  const togglePlay = () => {
+const togglePlay = () => {
+  if (isWatchParty && !isHost) {
+    return;
+}
   if (!videoRef.current) return;
 
   if (videoRef.current.paused) {
     videoRef.current.play();
     setIsPlaying(true);
+
+    if (isWatchParty) {
+      socket.emit("play-video", {
+        partyCode,
+        currentTime: videoRef.current.currentTime,
+      });
+    }
   } else {
     videoRef.current.pause();
     setIsPlaying(false);
+
+    if (isWatchParty) {
+      socket.emit("pause-video", {
+        partyCode,
+        currentTime: videoRef.current.currentTime,
+      });
+    }
   }
 };
 
 const skipForward = () => {
+   if (isWatchParty && !isHost) return;
   if (!videoRef.current) return;
 
   videoRef.current.currentTime = Math.min(
@@ -58,6 +82,7 @@ const skipForward = () => {
 };
 
 const skipBackward = () => {
+    if (isWatchParty && !isHost) return;
   if (!videoRef.current) return;
 
   videoRef.current.currentTime = Math.max(
@@ -107,6 +132,8 @@ const showPlayerControls = () => {
 const handleDoubleTap = (e: React.MouseEvent<HTMLDivElement>) => {
   const now = Date.now();
   const DOUBLE_TAP_DELAY = 300;
+
+  if (isWatchParty && !isHost) return;
 
   if (now - lastTap < DOUBLE_TAP_DELAY) {
     if (!playerRef.current || !videoRef.current) return;
@@ -158,7 +185,60 @@ const formatTime = (time: number) => {
 
   return `${minutes}:${seconds.toString().padStart(2, "0")}`;
 };
-  
+
+useEffect(() => {
+  if (!isWatchParty) return;
+  if (!videoRef.current) return;
+
+ const handlePlay = async ({ currentTime }: { currentTime: number }) => {
+  console.log("Received play event", currentTime);
+
+  if (!videoRef.current) {
+    console.log("videoRef is null");
+    return;
+  }
+
+  console.log("Before play()");
+  console.log("readyState:", videoRef.current.readyState);
+  console.log("paused:", videoRef.current.paused);
+
+  videoRef.current.currentTime = currentTime;
+
+  try {
+    await videoRef.current.play();
+    console.log("✅ play() succeeded");
+    setIsPlaying(true);
+  } catch (err) {
+    console.error("❌ play() failed", err);
+  }
+};
+
+  const handlePause = ({ currentTime }: { currentTime: number }) => {
+    if (!videoRef.current) return;
+
+    videoRef.current.currentTime = currentTime;
+    videoRef.current.pause();
+    setIsPlaying(false);
+  };
+  const handleSeek = ({ currentTime }: { currentTime: number }) => {
+  if (!videoRef.current) return;
+
+  videoRef.current.currentTime = currentTime;
+  setCurrentTime(currentTime);
+};
+
+  socket.on("play-video", handlePlay);
+  socket.on("pause-video", handlePause);
+  socket.on("seek-video", handleSeek);
+
+  return () => {
+    socket.off("play-video", handlePlay);
+    socket.off("pause-video", handlePause);
+    socket.off("seek-video", handleSeek);
+  };
+}, [isWatchParty]);
+
+
   return (
 <div
   ref={playerRef}
@@ -187,54 +267,70 @@ onEnded={() => {
       </video>
 {showControls && (
   <div className="absolute bottom-0 left-0 w-full bg-gradient-to-t from-black/90 via-black/60 to-transparent px-4 py-3">
+    {isWatchParty && !isHost && (
+      <div className="mb-3 rounded bg-yellow-100 text-yellow-800 p-2 text-sm">
+        👀 Only the host can control playback.
+      </div>
+    )}
+
     <input
       type="range"
       min={0}
       max={duration || 0}
       value={currentTime}
+      disabled={isWatchParty && !isHost}
       onChange={(e) => {
+        if (isWatchParty && !isHost) {
+          return;
+        }
         if (!videoRef.current) return;
 
-        videoRef.current.currentTime = Number(e.target.value);
-        setCurrentTime(Number(e.target.value));
+        const newTime = Number(e.target.value);
+
+        videoRef.current.currentTime = newTime;
+        setCurrentTime(newTime);
+
+        if (isWatchParty) {
+          socket.emit("seek-video", {
+            partyCode,
+            currentTime: newTime,
+          });
+        }
       }}
-className="w-full accent-red-600 cursor-pointer"    />
+      className="w-full accent-red-600 cursor-pointer"
+    />
 
     <div className="flex items-center justify-between text-white text-sm font-medium mt-3">
-      LEFT
-▶
-⏪
-⏩
-🔊
-
-CENTER
-(Time)
-
-RIGHT
-⛶  
       <div className="flex items-center gap-2">
         <button
           onClick={skipBackward}
-         className="p-2 rounded-full hover:bg-white/20 transition-all duration-200"
+          disabled={isWatchParty && !isHost}
+          className="p-2 rounded-full hover:bg-white/20 transition-all duration-200"
         >
-      <SkipBack size={10} />
+          <SkipBack size={10} />
         </button>
 
         <button
           onClick={togglePlay}
-className="p-3 rounded-full bg-red-600 hover:bg-red-700 transition-all duration-200"        >
-{isPlaying ? <Pause size={22} /> : <Play size={22} />}      
-  </button>
+          disabled={isWatchParty && !isHost}
+          className="p-3 rounded-full bg-red-600 hover:bg-red-700 transition-all duration-200"
+        >
+          {isPlaying ? <Pause size={22} /> : <Play size={22} />}
+        </button>
 
         <button
           onClick={skipForward}
-className="p-2 rounded-full hover:bg-white/20 transition-all duration-200"        >
+          disabled={isWatchParty && !isHost}
+          className="p-2 rounded-full hover:bg-white/20 transition-all duration-200"
+        >
           <SkipForward size={10} />
         </button>
       </div>
 
       <div className="flex items-center gap-2">
-        <span className="text-lg"><Volume2 size={20} /></span>
+        <span className="text-lg">
+          <Volume2 size={20} />
+        </span>
 
         <input
           type="range"
@@ -243,21 +339,22 @@ className="p-2 rounded-full hover:bg-white/20 transition-all duration-200"      
           step={0.01}
           value={volume}
           onChange={(e) => handleVolume(Number(e.target.value))}
-className="w-24 accent-red-600 cursor-pointer"        />
+          className="w-24 accent-red-600 cursor-pointer"
+        />
       </div>
 
       <button
         onClick={toggleFullscreen}
         className="px-3 py-1 bg-gray-700 rounded hover:bg-gray-600"
       >
-   <Maximize size={20} />  
-       </button>
+        <Maximize size={20} />
+      </button>
 
       <span>{formatTime(currentTime)}</span>
       <span>{formatTime(duration)}</span>
     </div>
   </div>
-)}
+  )}
 {isloading && (
   <div className="absolute inset-0 flex items-center justify-center bg-black/30">
     <div className="w-14 h-14 border-4 border-[5px] border-white border-t-transparent rounded-full animate-spin"></div>
@@ -269,7 +366,9 @@ className="w-24 accent-red-600 cursor-pointer"        />
       onClick={(e) => {
         e.stopPropagation();
         togglePlay();
+        
       }}
+          disabled={isWatchParty && !isHost}
       className="bg-black/60 text-white px-6 py-3 rounded-full hover:bg-black/80 transition"
     >
       ▶ Play
@@ -288,6 +387,7 @@ className="w-24 accent-red-600 cursor-pointer"        />
           setShowNext(false);
           videoRef.current?.play();
         }}
+        disabled={isWatchParty && !isHost}
         className="bg-red-600 text-white px-6 py-3 rounded-lg"
       >
         Replay
@@ -299,6 +399,7 @@ className="w-24 accent-red-600 cursor-pointer"        />
    if (nextVideo) {
   router.push(`/watch/${nextVideo._id}`);
 }}}
+disabled={isWatchParty && !isHost}
         className="bg-white text-black px-6 py-3 rounded-lg"
       >
         Next Video
@@ -308,6 +409,7 @@ className="w-24 accent-red-600 cursor-pointer"        />
     </div>
   </div>
 )}
+
     </div>
   );
 }

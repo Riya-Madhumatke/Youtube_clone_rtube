@@ -1,4 +1,4 @@
-import { Bell, Menu, Mic, Search, User, VideoIcon } from "lucide-react";
+import { Bell, Menu, Mic, Search, User, VideoIcon, Crown, Moon, Sun } from "lucide-react";
 import React, { useState } from "react";
 import { Button } from "./ui/button";
 import Link from "next/link";
@@ -14,13 +14,27 @@ import { Avatar, AvatarFallback, AvatarImage } from "./ui/avatar";
 import Channeldialogue from "./channeldialogue";
 import { useRouter } from "next/router";
 import { useUser } from "@/lib/AuthContext";
+import SubscriptionDialog from "./SubscriptionDialog";
+import axiosInstance from "@/lib/axiosinstance";
+
 
 const Header = () => {
-  const { user, logout, handlegooglesignin } = useUser();
-  console.log("Header User:", user);
-  
+  const { user, logout, handlegooglesignin, refreshUser } = useUser();
   const [searchQuery, setSearchQuery] = useState("");
   const [isdialogeopen, setisdialogeopen] = useState(false);
+  const [isSubscriptionOpen, setIsSubscriptionOpen] = useState(false);
+  const [subscriptionOpen, setSubscriptionOpen] = useState(false);
+  const languages = [
+  { code: "en", name: "English" },
+  { code: "hi", name: "Hindi" },
+  { code: "mr", name: "Marathi" },
+  { code: "ta", name: "Tamil" },
+  { code: "te", name: "Telugu" },
+  { code: "ml", name: "Malayalam" },
+  { code: "kn", name: "Kannada" },
+  { code: "gu", name: "Gujarati" },
+  { code: "bn", name: "Bengali" },
+];
   const router = useRouter();
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
@@ -33,8 +47,40 @@ const Header = () => {
       handleSearch(e as any);
     }
   };
+  const handleThemeToggle = async () => {
+  if (!user) return;
+
+  const newTheme = user.theme === "dark" ? "light" : "dark";
+
+  try {
+    await axiosInstance.patch(`/user/theme/${user._id}`, {
+      theme: newTheme,
+    });
+
+    await refreshUser(user._id);
+  } catch (error) {
+    console.error(error);
+  }
+};
+
+const handleLanguageChange = async (language) => {
+  if (!user) return;
+
+  try {
+    await axiosInstance.patch(`/user/language/${user._id}`, {
+      preferredLanguage: language,
+    });
+
+    await refreshUser(user._id);
+
+  } catch (error) {
+    console.log(error);
+  }
+};
+
+  
   return (
-    <header className="flex items-center justify-between px-4 py-2 bg-white border-b">
+    <header className="flex items-center justify-between px-4 py-2 bg-background border-b transition-colors duration-300">
       <div className="flex items-center gap-4">
         <Button variant="ghost" size="icon">
           <Menu className="w-6 h-6" />
@@ -45,8 +91,8 @@ const Header = () => {
               <path d="M23.498 6.186a3.016 3.016 0 0 0-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 0 0 .502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 0 0 2.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 0 0 2.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z" />
             </svg>
           </div>
-          <span className="text-xl font-medium">RTube</span>
-          <span className="text-xs text-gray-400 ml-1">IN</span>
+          <span className="text-xl font-medium">MyTube</span>
+          <span className="text-xs text-muted-foreground ml-1">IN</span>
         </Link>
       </div>
       <form
@@ -64,7 +110,7 @@ const Header = () => {
           />
           <Button
             type="submit"
-            className="rounded-r-full px-6 bg-gray-50 hover:bg-gray-100 text-gray-600 border border-l-0"
+            className="rounded-r-full px-6 bg-secondary hover:bg-accent text-muted-foreground border border-l-0"
           >
             <Search className="w-5 h-5" />
           </Button>
@@ -79,9 +125,60 @@ const Header = () => {
             <Button variant="ghost" size="icon">
               <VideoIcon className="w-6 h-6" />
             </Button>
+
+            <Button
+  variant="ghost"
+  size="icon"
+  onClick={handleThemeToggle}
+  title="Toggle Theme"
+>
+  {user.theme === "dark" ? (
+    <Sun className="w-5 h-5" />
+  ) : (
+    <Moon className="w-5 h-5" />
+  )}
+</Button>
+
+<select
+  value={user?.preferredLanguage || "en"}
+  onChange={(e) => handleLanguageChange(e.target.value)}
+  className="rounded-md border bg-background px-2 py-1 text-sm"
+>
+  {languages.map((lang) => (
+    <option key={lang.code} value={lang.code}>
+      {lang.name}
+    </option>
+  ))}
+</select>
+            
             <Button variant="ghost" size="icon">
               <Bell className="w-6 h-6" />
             </Button>
+
+{user?.plan === "free" ? (
+  <Button
+    onClick={() => setSubscriptionOpen(true)}
+    className="bg-red-600 hover:bg-red-700 text-white rounded-full"
+  >
+    👑 Upgrade
+  </Button>
+) : (
+  <Button
+    variant="ghost"
+    onClick={() => setSubscriptionOpen(true)}
+    className={`rounded-full px-3 h-9 flex items-center gap-2 font-semibold
+      ${
+        user.plan === "bronze"
+          ? "bg-amber-100 text-amber-700 hover:bg-amber-200"
+          : user.plan === "silver"
+          ? "bg-gray-100 text-gray-700 hover:bg-gray-200"
+          : "bg-yellow-100 text-yellow-700 hover:bg-yellow-200"
+      }`}
+  >
+    <Crown className="w-4 h-4" />
+    {user.plan.charAt(0).toUpperCase() + user.plan.slice(1)}
+  </Button>
+)}
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button
@@ -142,6 +239,14 @@ const Header = () => {
         onclose={() => setisdialogeopen(false)}
         mode="create"
       />
+      <SubscriptionDialog
+  open={isSubscriptionOpen}
+  onClose={() => setIsSubscriptionOpen(false)}
+/>
+<SubscriptionDialog
+  open={subscriptionOpen}
+  onClose={() => setSubscriptionOpen(false)}
+/>
     </header>
   );
 };

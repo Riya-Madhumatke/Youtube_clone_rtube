@@ -1,5 +1,5 @@
-import video from "../Modals/video.js";
-import like from "../Modals/like.js";
+import video from "../Models/video.js";
+import like from "../Models/like.js";
 
 export const handlelike = async (req, res) => {
   const { userId } = req.body;

@@ -19,8 +19,7 @@ const Sidebar = () => {
 
   const [isdialogeopen, setisdialogeopen] = useState(false);
   return (
-    <aside className="w-64 bg-white  border-r min-h-screen p-2">
-      <nav className="space-y-1">
+<aside className="w-64 bg-background border-r min-h-screen p-2 transition-colors duration-300">      <nav className="space-y-1">
         <Link href="/">
           <Button variant="ghost" className="w-full justify-start">
             <Home className="w-5 h-5 mr-3" />
@@ -42,7 +41,7 @@ const Sidebar = () => {
 
         {user && (
           <>
-            <div className="border-t pt-2 mt-2">
+            <div className="border-t border-border pt-2 mt-2">
               <Link href="/history">
                 <Button variant="ghost" className="w-full justify-start">
                   <History className="w-5 h-5 mr-3" />
@@ -61,6 +60,12 @@ const Sidebar = () => {
                   Watch later
                 </Button>
               </Link>
+             <Link href="/watch-party">
+  <div className="flex items-center gap-3 px-4 py-2 rounded-lg hover:bg-muted cursor-pointer transition">
+    <User className="w-5 h-5" />
+    <span>Watch Party</span>
+  </div>
+</Link>
               <Link href="/downloads">
   <Button variant="ghost" className="w-full justify-start">
     <Download className="w-5 h-5 mr-3" />
