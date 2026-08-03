@@ -17,13 +17,13 @@ export const sendSubscriptionEmail = async ({
   orderId,
 }) => {
   const mailOptions = {
-    from: `"MyTube" <${process.env.EMAIL_USER}>`,
+    from: `"RTube" <${process.env.EMAIL_USER}>`,
     to: email,
-    subject: "🎉 MyTube Premium Subscription Activated",
+    subject: "🎉 RTube Premium Subscription Activated",
     html: `
       <div style="font-family: Arial, sans-serif; max-width:600px; margin:auto; border:1px solid #ddd; border-radius:10px; overflow:hidden;">
         <div style="background:#ff0000; color:white; padding:20px; text-align:center;">
-          <h1>MyTube Premium</h1>
+          <h1>RTube Premium</h1>
         </div>
 
         <div style="padding:25px;">
@@ -56,12 +56,12 @@ export const sendSubscriptionEmail = async ({
 
           <br/>
 
-          <p>Thank you for choosing <strong>MyTube Premium</strong>.</p>
+          <p>Thank you for choosing <strong>RTube Premium</strong>.</p>
           <p>Enjoy your premium features!</p>
         </div>
 
         <div style="background:#f5f5f5; padding:15px; text-align:center; color:#777;">
-          © ${new Date().getFullYear()} MyTube
+          © ${new Date().getFullYear()} RTube
         </div>
       </div>
     `,
@@ -72,9 +72,9 @@ export const sendSubscriptionEmail = async ({
 
 export const sendOTPEmail = async (email, otp) => {
   const mailOptions = {
-    from: `"MyTube" <${process.env.EMAIL_USER}>`,
+    from: `"RTube" <${process.env.EMAIL_USER}>`,
     to: email,
-    subject: "MyTube Login Verification Code",
+    subject: "RTube Login Verification Code",
     html: `
       <div style="font-family: Arial, sans-serif; max-width:600px; margin:auto;">
         <h2>Login Verification</h2>
@@ -91,7 +91,7 @@ export const sendOTPEmail = async (email, otp) => {
 
         <hr />
 
-        <small>© MyTube</small>
+        <small>© RTube</small>
       </div>
     `,
   };

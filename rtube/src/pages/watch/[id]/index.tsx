@@ -1,7 +1,7 @@
 import Comments from "@/components/Comments";
 import RelatedVideos from "@/components/RelatedVideos";
 import VideoInfo from "@/components/VideoInfo";
-import Videopplayer from "@/components/Videopplayer";
+import Videopplayer from "@/components/Videoplayer";
 import axiosInstance from "@/lib/axiosinstance";
 import { notFound } from "next/navigation";
 import { useRouter } from "next/router";

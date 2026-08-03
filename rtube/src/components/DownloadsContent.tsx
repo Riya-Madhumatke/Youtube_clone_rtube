@@ -43,14 +43,19 @@ export default function DownloadsContent() {
   if (loading) {
     return <div>Fetching your downloads...</div>;
   }
-  const handleRemoveFromDownloads = async (downloadsId: string) => {
-    try {
-      console.log("Removing from history:", downloadsId);
-      setDownloads(downloads.filter((item) => item._id !== downloadsId));
-    } catch (error) {
-      console.error("Error removing from history:", error);
-    }
-  };
+const handleRemoveFromDownloads = async (downloadsId: string) => {
+  try {
+    await axiosInstance.delete(`/download/${downloadsId}`);
+
+    setDownloads((prev) =>
+      prev.filter((item) => item._id !== downloadsId)
+    );
+
+    console.log("Download removed successfully");
+  } catch (error) {
+    console.error("Error removing download:", error);
+  }
+};
 
   if (!user) {
     return (
@@ -120,7 +125,7 @@ export default function DownloadsContent() {
                 {formatDistanceToNow(new Date(item.videoId.createdAt))} ago
               </p>
               <p className="text-xs text-gray-500 mt-1">
-                Added {formatDistanceToNow(new Date(item.createdAt))} ago
+                Downloaded {formatDistanceToNow(new Date(item.createdAt))} ago
               </p>
             </div>
 

@@ -57,6 +57,13 @@ console.log("Socket:", socket.id);
           name: user.name,
           image: user.image,
         });
+        const host = activeRooms[partyCode][0];
+
+if (host && host.socketId !== socket.id) {
+  io.to(host.socketId).emit("request-video-state", {
+    target: socket.id,
+  });
+}
         console.log("Room members before emit:", activeRooms[partyCode]);
 console.log("Emitting user-joined-call from:", socket.id);
         socket.to(partyCode).emit("user-joined-call", {
@@ -135,6 +142,16 @@ console.log(activeRooms[partyCode]);
         `Seek event sent to room ${partyCode} at ${currentTime}s`
       );
     });
+
+    socket.on("video-state", ({ target, currentTime, isPlaying }) => {
+  io.to(target).emit("video-state", {
+    currentTime,
+    isPlaying,
+  });
+   console.log(
+    `Video state sent to ${target} at ${currentTime}s (${isPlaying ? "playing" : "paused"})`
+  );
+});
 
     socket.on("end-party", ({ partyCode }) => {
   io.to(partyCode).emit("party-ended");

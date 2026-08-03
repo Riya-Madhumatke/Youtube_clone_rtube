@@ -226,17 +226,55 @@ useEffect(() => {
   videoRef.current.currentTime = currentTime;
   setCurrentTime(currentTime);
 };
+const handleRequestVideoState = ({ target }: { target: string }) => {
+  if (!isHost || !videoRef.current) return;
+
+  socket.emit("video-state", {
+    target,
+    currentTime: videoRef.current.currentTime,
+    isPlaying: !videoRef.current.paused,
+  });
+};
+const handleVideoState = async ({
+  currentTime,
+  isPlaying,
+}: {
+  currentTime: number;
+  isPlaying: boolean;
+}) => {
+  if (!videoRef.current) return;
+
+  videoRef.current.currentTime = currentTime;
+
+  if (isPlaying) {
+    try {
+      await videoRef.current.play();
+      setIsPlaying(true);
+    } catch (err) {
+      console.error(err);
+    }
+  } else {
+    videoRef.current.pause();
+    setIsPlaying(false);
+  }
+
+  setCurrentTime(currentTime);
+};
 
   socket.on("play-video", handlePlay);
   socket.on("pause-video", handlePause);
   socket.on("seek-video", handleSeek);
+  socket.on("request-video-state", handleRequestVideoState);
+  socket.on("video-state", handleVideoState);
 
   return () => {
     socket.off("play-video", handlePlay);
     socket.off("pause-video", handlePause);
     socket.off("seek-video", handleSeek);
+    socket.off("request-video-state", handleRequestVideoState);
+    socket.off("video-state", handleVideoState);
   };
-}, [isWatchParty]);
+}, [isWatchParty, isHost]);
 
 
   return (

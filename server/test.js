@@ -1,7 +1,7 @@
 import mongoose from "mongoose";
 
 const uri =
-  "mongodb+srv://kuldeep:YOUR_NEW_PASSWORD@cluster0.jjxgxoy.mongodb.net/mytube?retryWrites=true&w=majority&appName=Cluster0";
+  "mongodb+srv://Riya:YOUR_NEW_PASSWORD@cluster0.jjxgxoy.mongodb.net/rtube?retryWrites=true&w=majority&appName=Cluster0";
 
 console.log("Connecting...");
 

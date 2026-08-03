@@ -26,10 +26,15 @@ export default function RemoteVideo({
 }, [stream]);
 
   return (
+  <div className="bg-zinc-900 rounded-xl p-3 border border-zinc-700 shadow-lg">
+
     <video
       ref={videoRef}
       autoPlay
       playsInline
-className="w-full rounded-xl border border-zinc-700 bg-black shadow-lg aspect-video object-cover"    />
-  );
+      className="w-full rounded-lg aspect-video bg-black object-cover"
+    />
+
+  </div>
+);
 }

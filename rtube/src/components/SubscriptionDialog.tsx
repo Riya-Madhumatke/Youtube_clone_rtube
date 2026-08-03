@@ -41,7 +41,7 @@ export default function SubscriptionDialog({
   open,
   onClose,
 }: Props): JSX.Element {
-  const { user } = useUser();
+  const { user,refreshUser } = useUser();
   const availablePlans = plans.filter((plan) => {
   if (!user) return true;
 
@@ -81,7 +81,7 @@ export default function SubscriptionDialog({
   currency: order.currency,
   order_id: order.id,
 
-  name: "MyTube",
+  name: "RTube",
   description: `${plan.name} Subscription`,
 
   prefill: {
@@ -113,11 +113,12 @@ export default function SubscriptionDialog({
           });
 
           if (verify.data.success) {
+          await refreshUser(user._id); // Refresh user data after successful payment
             toast.success(`${plan.name} plan activated!`);
 
             onClose();
 
-            window.location.reload();
+            
           }
         } catch (error) {
           console.log(error);

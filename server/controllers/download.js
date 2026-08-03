@@ -1,4 +1,4 @@
-import Download from "../Models/Download.js";
+import Download from "../Models/download.js";
 import users from "../Models/Auth.js";
 import video from "../Models/video.js";
 
@@ -29,12 +29,16 @@ export const downloadVideo = async (req, res) => {
     today.setHours(0, 0, 0, 0);
 
     // Count today's downloads
-    const todaysDownloads = await Download.countDocuments({
-      userId,
-      downloadedAt: {
-        $gte: today,
-      },
-    });
+   const tomorrow = new Date(today);
+tomorrow.setDate(tomorrow.getDate() + 1);
+
+const todaysDownloads = await Download.countDocuments({
+  userId,
+  downloadedAt: {
+    $gte: today,
+    $lt: tomorrow,
+  },
+});
 
     // Download limits
     const limits = {
@@ -83,6 +87,34 @@ export const getMyDownloads = async (req, res) => {
       .sort({ createdAt: -1 });
 
     return res.status(200).json(downloads);
+
+  } catch (error) {
+    console.log(error);
+
+    return res.status(500).json({
+      message: "Something went wrong",
+    });
+  }
+};
+
+export const removeDownload = async (req, res) => {
+  try {
+    const { downloadId } = req.params;
+
+    const download = await Download.findById(downloadId);
+
+    if (!download) {
+      return res.status(404).json({
+        message: "Download not found",
+      });
+    }
+
+    await Download.findByIdAndDelete(downloadId);
+
+    return res.status(200).json({
+      success: true,
+      message: "Download removed successfully",
+    });
 
   } catch (error) {
     console.log(error);

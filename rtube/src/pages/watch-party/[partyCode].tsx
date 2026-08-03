@@ -30,9 +30,12 @@ export default function WatchPartyPage() {
   const [messages, setMessages] = useState<any[]>([]);
   const [chatMessage, setChatMessage] = useState("");
   const [remoteSocket, setRemoteSocket] = useState<string | null>(null);
+  const [remoteParticipant, setRemoteParticipant] = useState<any | null>(null);
   const [isMuted, setIsMuted] = useState(false);
   const [isCameraOff, setIsCameraOff] = useState(false);
   const [isScreenSharing, setIsScreenSharing] = useState(false);
+  const videoRef = useRef<HTMLVideoElement | null>(null);
+
   const {
   peerConnection,
   localStream,
@@ -46,7 +49,6 @@ export default function WatchPartyPage() {
 } = useWebRTC({
   socket,
 });
-  
 
 
   const copyPartyCode = async () => {
@@ -136,9 +138,44 @@ const toggleScreenShare = async () => {
     console.log("Screen selected!");
 
     const screenTrack = screenStream.getVideoTracks()[0];
-
+const sender = peerConnection.current
+  .getSenders()
+  .find((s) => s.track?.kind === "video");
+console.log(sender);
+console.log(
+  peerConnection.current
+    ?.getSenders()
+    .map((s) => ({
+      kind: s.track?.kind,
+      id: s.track?.id,
+    }))
+);
+if (sender) {
+  await sender.replaceTrack(screenTrack);
+  console.log("✅ Replaced camera with screen track");
+}
     console.log("Screen Track:", screenTrack);
 
+if (videoRef.current) {
+  videoRef.current.srcObject = screenStream;
+}
+
+screenTrack.onended = async () => {
+  const cameraTrack = localStream.getVideoTracks()[0];
+
+  const sender = peerConnection.current
+    ?.getSenders()
+    .find((s) => s.track?.kind === "video");
+
+  if (sender && cameraTrack) {
+    await sender.replaceTrack(cameraTrack);
+    console.log("✅ Camera restored");
+  }
+
+  if (videoRef.current) {
+    videoRef.current.srcObject = localStream;
+  }
+};
     // Stop here for now
   } catch (err) {
     console.error("Screen Share Error:", err);
@@ -221,6 +258,7 @@ useEffect(() => {
     console.log("User joined:", user);
      remoteSocketId.current = user.socketId;
     setRemoteSocket(user.socketId);
+    setRemoteParticipant(user);
   };
 
   socket.on("user-joined-call", handleUserJoined);
@@ -424,10 +462,9 @@ useEffect(() => {
 
 
 
-     <div className="grid grid-cols-12 gap-6">
-
+<div className="grid grid-cols-1 xl:grid-cols-12 gap-6">
   {/* LEFT SIDE */}
-  <div className="col-span-8 space-y-5">
+  <div className="xl:col-span-8 space-y-5">
 
     <Videoplayer
       video={party.video}
@@ -437,7 +474,7 @@ useEffect(() => {
       isHost={isHost}
     />
 
-     <div className="flex justify-center gap-4">
+     <div className="flex flex-wrap justify-center gap-3">
 
   <button
     onClick={toggleMute}
@@ -468,7 +505,7 @@ useEffect(() => {
     className="flex items-center gap-2 bg-red-600 hover:bg-red-700 px-5 py-3 rounded-xl transition"
   >
     <PhoneOff size={18}/>
-    Leave Call
+    Leave Party
   </button>
 
 </div>
@@ -479,7 +516,7 @@ useEffect(() => {
 
     </div>
 
- <div className="grid grid-cols-2 gap-4">
+ <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
 
   <div>
     <p className="text-sm text-zinc-400 mb-2">
@@ -490,11 +527,14 @@ useEffect(() => {
       onStreamReady={setLocalStream}
     />
   </div>
-
-  <div>
-    <p className="text-sm text-zinc-400 mb-2">
-      Participant
+<div>
+  <div className="flex items-center justify-between mb-2">
+    <p className="text-sm font-medium text-white">
+        {remoteParticipant?.name || "Participant"}
     </p>
+
+    <div className="w-2 h-2 rounded-full bg-green-500"></div>
+</div>
 
     <RemoteVideo
       stream={remoteStream}
@@ -506,7 +546,7 @@ useEffect(() => {
   </div>
 
   {/* RIGHT SIDE */}
-  <div className="col-span-4 space-y-5">
+  <div className="xl:col-span-4 space-y-5">
 
     <ParticipantsPanel
       partyCode={party.partyCode}
