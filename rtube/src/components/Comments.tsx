@@ -7,6 +7,14 @@ import { useUser } from "@/lib/AuthContext";
 import axiosInstance from "@/lib/axiosinstance";
 import { ThumbsUp, ThumbsDown, Flag } from "lucide-react";
 import ReportDialog from "./ReportDialog";
+import {toast} from "sonner";
+import {
+  DropdownMenu,
+  DropdownMenuTrigger,
+  DropdownMenuContent,
+  DropdownMenuItem,
+} from "@/components/ui/dropdown-menu";
+import {languages} from "@/lib/languages";
 interface Comment {
   _id: string;
   videoid: string;
@@ -40,24 +48,7 @@ const Comments = ({ videoId }: any) => {
   const [reportDialogOpen, setReportDialogOpen] = useState(false);
   const [selectedCommentId, setSelectedCommentId] = useState("");
   const [translatingId, setTranslatingId] = useState("");
-  const fetchedComments = [
-    {
-      _id: "1",
-      videoid: videoId,
-      userid: "1",
-      commentbody: "Great video! Really enjoyed watching this.",
-      usercommented: "John Doe",
-      commentedon: new Date(Date.now() - 3600000).toISOString(),
-    },
-    {
-      _id: "2",
-      videoid: videoId,
-      userid: "2",
-      commentbody: "Thanks for sharing this amazing content!",
-      usercommented: "Jane Smith",
-      commentedon: new Date(Date.now() - 7200000).toISOString(),
-    },
-  ];
+
   useEffect(() => {
     loadComments();
   }, [videoId]);
@@ -76,6 +67,7 @@ const Comments = ({ videoId }: any) => {
   if (loading) {
     return <div>Loading history...</div>;
   }
+
   const handleSubmitComment = async () => {
     if (!user || !newComment.trim()) return;
 
@@ -89,15 +81,20 @@ const Comments = ({ videoId }: any) => {
       });
      if (res.data.comment) {
   await loadComments();
+  setNewComment("");
+  toast.success("Comment posted successfully.");
+}
+   } catch (error: any) {
+  console.error(error);
 
-       setNewComment("");
-      }
-      setNewComment("");
-    } catch (error) {
-      console.error("Error adding comment:", error);
-    } finally {
-      setIsSubmitting(false);
-    }
+  toast.error(
+    error.response?.data?.message ||
+      "Failed to post comment."
+  );
+}
+ finally {
+    setIsSubmitting(false);
+  }
   };
 
   const handleEdit = (comment: Comment) => {
@@ -237,14 +234,14 @@ const handleReport = async (reason: string) => {
   }
 };
 
-const handleTranslate = async (commentId: string) => {
+const handleTranslate = async (commentId: string, targetLanguage: string) => {
   try {
     setTranslatingId(commentId);
 
    const res = await axiosInstance.post(
   `/comment/translate/${commentId}`,
   {
-    targetLanguage: user?.preferredLanguage || "en",
+    targetLanguage,
   }
 );
 
@@ -254,7 +251,7 @@ const handleTranslate = async (commentId: string) => {
           ? {
               ...comment,
               translatedText: res.data.translatedText,
-              translatedLanguage: "en",
+              translatedLanguage: targetLanguage,
             }
           : comment
       )
@@ -268,7 +265,7 @@ const handleTranslate = async (commentId: string) => {
 
   return (
     <div className="space-y-6">
-      <h2 className="text-xl font-semibold">{comments.length} Comments</h2>
+      <h2 className="text-xl font-semibold text-black dark:text-white">{comments.length} Comments</h2>
 
       {user && (
         <div className="flex gap-4">
@@ -303,7 +300,7 @@ const handleTranslate = async (commentId: string) => {
       )}
       <div className="space-y-4">
         {comments.length === 0 ? (
-          <p className="text-sm text-gray-500 italic">
+          <p className="text-sm text-gray-500 dark:text-gray-400 italic">
             No comments yet. Be the first to comment!
           </p>
         ) : (
@@ -315,10 +312,10 @@ const handleTranslate = async (commentId: string) => {
               </Avatar>
               <div className="flex-1">
                 <div className="flex items-center gap-2 mb-1">
-                  <span className="font-medium text-sm">
+                  <span className="font-medium text-sm  text-black dark:text-white">
                     {comment.userid.name}
                   </span>
-                  <span className="text-xs text-gray-600">
+                  <span className="text-xs text-gray-600 dark:text-gray-400">
                     {formatDistanceToNow(new Date(comment.commentedon))} ago
                   </span>
                 </div>
@@ -349,7 +346,7 @@ const handleTranslate = async (commentId: string) => {
                   </div>
                 ) : (
                  <>
-  <p className="text-sm">
+  <p className="text-sm text-black dark:text-gray-100">
   {comment.commentbody}
   </p>
 
@@ -365,7 +362,7 @@ const handleTranslate = async (commentId: string) => {
   </div>
 )}
 
-  <div className="flex items-center gap-4 mt-2 text-sm text-gray-600">
+  <div className="flex items-center gap-4 mt-2 text-sm text-gray-600 dark:text-gray-400">
 
     <button
       onClick={() => handleLike(comment._id)}
@@ -397,16 +394,23 @@ const handleTranslate = async (commentId: string) => {
       {comment.dislikes.length}
     </button>
 
-    <button
-  onClick={() => handleTranslate(comment._id)}
-  disabled={translatingId === comment._id}
-  className="text-blue-600 hover:underline"
->
-  {translatingId === comment._id
-    ? "Translating..."
-    : "🌍 Translate"}
-</button>
+    <DropdownMenu>
+  <DropdownMenuTrigger asChild>
+    <Button variant="ghost" size="sm">
+      Translate
+    </Button>
+  </DropdownMenuTrigger>
 
+  <DropdownMenuContent align="start">
+    {languages.map((lang) => (
+      <DropdownMenuItem
+        key={lang.code}
+onClick={() => handleTranslate(comment._id, lang.code)}      >
+        {lang.name}
+      </DropdownMenuItem>
+    ))}
+  </DropdownMenuContent>
+</DropdownMenu>
     
    {comment.userid._id !== user?._id && (
   <button

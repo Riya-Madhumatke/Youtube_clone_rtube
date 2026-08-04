@@ -18,23 +18,18 @@ import SubscriptionDialog from "./SubscriptionDialog";
 import axiosInstance from "@/lib/axiosinstance";
 
 
-const Header = () => {
+const Header= ({
+  isSidebarOpen,
+  setIsSidebarOpen,
+}: {
+  isSidebarOpen: boolean;
+  setIsSidebarOpen: React.Dispatch<React.SetStateAction<boolean>>;
+}) => {
   const { user, logout, handlegooglesignin, refreshUser } = useUser();
   const [searchQuery, setSearchQuery] = useState("");
   const [isdialogeopen, setisdialogeopen] = useState(false);
   const [isSubscriptionOpen, setIsSubscriptionOpen] = useState(false);
   const [subscriptionOpen, setSubscriptionOpen] = useState(false);
-  const languages = [
-  { code: "en", name: "English" },
-  { code: "hi", name: "Hindi" },
-  { code: "mr", name: "Marathi" },
-  { code: "ta", name: "Tamil" },
-  { code: "te", name: "Telugu" },
-  { code: "ml", name: "Malayalam" },
-  { code: "kn", name: "Kannada" },
-  { code: "gu", name: "Gujarati" },
-  { code: "bn", name: "Bengali" },
-];
   const router = useRouter();
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
@@ -63,28 +58,17 @@ const Header = () => {
   }
 };
 
-const handleLanguageChange = async (language) => {
-  if (!user) return;
-
-  try {
-    await axiosInstance.patch(`/user/language/${user._id}`, {
-      preferredLanguage: language,
-    });
-
-    await refreshUser(user._id);
-
-  } catch (error) {
-    console.log(error);
-  }
-};
-
   
   return (
     <header className="flex items-center justify-between px-4 py-2 bg-background border-b transition-colors duration-300">
       <div className="flex items-center gap-4">
-        <Button variant="ghost" size="icon">
-          <Menu className="w-6 h-6" />
-        </Button>
+        <Button
+  variant="ghost"
+  size="icon"
+  onClick={() => setIsSidebarOpen(!isSidebarOpen)}
+>
+  <Menu className="w-6 h-6" />
+</Button>
         <Link href="/" className="flex items-center gap-1">
           <div className="bg-red-600 p-1 rounded">
             <svg width="24" height="24" viewBox="0 0 24 24" fill="white">
@@ -138,18 +122,6 @@ const handleLanguageChange = async (language) => {
     <Moon className="w-5 h-5" />
   )}
 </Button>
-
-<select
-  value={user?.preferredLanguage || "en"}
-  onChange={(e) => handleLanguageChange(e.target.value)}
-  className="rounded-md border bg-background px-2 py-1 text-sm"
->
-  {languages.map((lang) => (
-    <option key={lang.code} value={lang.code}>
-      {lang.name}
-    </option>
-  ))}
-</select>
             
             <Button variant="ghost" size="icon">
               <Bell className="w-6 h-6" />

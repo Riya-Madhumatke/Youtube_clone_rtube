@@ -97,14 +97,11 @@ setPendingUser(null);
   return () => unsubscribe();
 }, []);
   
-      useEffect(() => {
-  if (!user) return;
-
-  if (user.theme === "dark") {
-    document.documentElement.classList.add("dark");
-  } else {
-    document.documentElement.classList.remove("dark");
-  }
+     useEffect(() => {
+  document.documentElement.classList.toggle(
+    "dark",
+    user?.theme === "dark"
+  );
 }, [user]);
 
   return (

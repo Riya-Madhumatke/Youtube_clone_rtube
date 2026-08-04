@@ -29,6 +29,20 @@ export default function useWebRTC({
       },
     ],
   });
+  pc.onnegotiationneeded = async () => {
+  console.log("Negotiation needed");
+
+  if (!remoteSocketId.current) return;
+
+  const offer = await pc.createOffer();
+
+  await pc.setLocalDescription(offer);
+
+  socket.emit("webrtc-offer", {
+    offer,
+    target: remoteSocketId.current,
+  });
+};
 
   pc.onicecandidate = (event) => {
   if (!event.candidate) return;
@@ -72,31 +86,20 @@ useEffect(() => {
   if (!localStream) return;
   if (!peerConnection.current) return;
 
-  const existingTrackIds = new Set(
-    peerConnection.current
-      .getSenders()
-      .map(sender => sender.track?.id)
-      .filter(Boolean)
-  );
+  const senders = peerConnection.current.getSenders();
 
-console.log("=== addTrack effect ===");
+  if (senders.length > 0) {
+    console.log("Tracks already added");
+    return;
+  }
+
+  console.log("Adding local tracks");
+
   localStream.getTracks().forEach(track => {
-     console.log("Adding track:", track.kind);
-    if (!existingTrackIds.has(track.id)) {
-      peerConnection.current!.addTrack(track, localStream);
-      console.log(
-        "Sending:",
-        track.kind,
-        track.readyState,
-        track.enabled
-    );
-    }
+    peerConnection.current!.addTrack(track, localStream);
   });
-  console.log(
-     "Senders after addTrack:",
-    peerConnection.current.getSenders().map(s => s.track?.kind)
-  );
-}, [localStream, peerConnection]);
+
+}, [localStream]);
 
 
 const createOffer = useCallback(async () => {

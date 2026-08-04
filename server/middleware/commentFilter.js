@@ -2,8 +2,16 @@ const abusiveWords = [
   "idiot",
   "stupid",
   "moron",
+  "dumb",
+  "loser",
+  "fool",
+  "hate",
   "bastard",
-  "damn",
+  "fuck",
+  "rape",
+  "suicide",
+  "shit",
+  "asshole",
 ];
 
 const spamPatterns = [
@@ -64,6 +72,21 @@ export const validateComment = (comment) => {
       message: "Please enter a meaningful comment.",
     };
   }
+
+  // Detect repeated words (spam)
+const words = lowerText.split(/\s+/);
+const frequency = {};
+
+for (const word of words) {
+  frequency[word] = (frequency[word] || 0) + 1;
+
+  if (frequency[word] >= 5) {
+    return {
+      valid: false,
+      message: "Spam comment detected.",
+    };
+  }
+}
 
   return {
     valid: true,

@@ -7,6 +7,7 @@ import {
   SkipBack,
   SkipForward,
   Volume2,
+  VolumeX,
   Maximize,
 } from "lucide-react";
 import { socket } from "@/socket/socket";
@@ -36,6 +37,8 @@ export default function VideoPlayer({ video, nextVideo, isWatchParty = false,
   const [currentTime, setCurrentTime] = useState(0);
   const [duration, setDuration] = useState(0);
   const [volume, setVolume] = useState(1);
+  const [isMuted, setIsMuted] = useState(false);
+  const [playbackRate, setPlaybackRate] = useState(1);
   const [isloading, setIsLoading] = useState(false);
   const [showControls, setShowControls] = useState(true);
   const [showNext, setShowNext] = useState(false);
@@ -95,7 +98,35 @@ const handleVolume = (value: number) => {
   if (!videoRef.current) return;
 
   videoRef.current.volume = value;
+
+  if (value === 0) {
+    videoRef.current.muted = true;
+    setIsMuted(true);
+  } else {
+    videoRef.current.muted = false;
+    setIsMuted(false);
+  }
+
   setVolume(value);
+};
+
+const changePlaybackSpeed = (speed: number) => {
+  if (!videoRef.current) return;
+
+  videoRef.current.playbackRate = speed;
+  setPlaybackRate(speed);
+};
+
+const toggleMute = () => {
+  if (!videoRef.current) return;
+
+  if (isMuted) {
+    videoRef.current.muted = false;
+    setIsMuted(false);
+  } else {
+    videoRef.current.muted = true;
+    setIsMuted(true);
+  }
 };
 
 const toggleFullscreen = async () => {
@@ -304,7 +335,8 @@ onEnded={() => {
         Your browser does not support the video tag.
       </video>
 {showControls && (
-  <div className="absolute bottom-0 left-0 w-full bg-gradient-to-t from-black/90 via-black/60 to-transparent px-4 py-3">
+  <div className="absolute bottom-0 left-0 w-full bg-gradient-to-t from-black/90 via-black/60 to-transparent px-4 py-3"      onClick={(e) => e.stopPropagation()}
+>
     {isWatchParty && !isHost && (
       <div className="mb-3 rounded bg-yellow-100 text-yellow-800 p-2 text-sm">
         👀 Only the host can control playback.
@@ -335,7 +367,15 @@ onEnded={() => {
           });
         }
       }}
-      className="w-full accent-red-600 cursor-pointer"
+     className="
+w-full
+h-2
+accent-red-600
+cursor-pointer
+hover:h-3
+transition-all
+duration-200
+"
     />
 
     <div className="flex items-center justify-between text-white text-sm font-medium mt-3">
@@ -345,14 +385,16 @@ onEnded={() => {
           disabled={isWatchParty && !isHost}
           className="p-2 rounded-full hover:bg-white/20 transition-all duration-200"
         >
-          <SkipBack size={10} />
+          <SkipBack size={18} />
         </button>
 
         <button
-          onClick={togglePlay}
-          disabled={isWatchParty && !isHost}
-          className="p-3 rounded-full bg-red-600 hover:bg-red-700 transition-all duration-200"
-        >
+  onClick={(e) => {
+    togglePlay();
+  }}
+  disabled={isWatchParty && !isHost}
+  className="p-2 rounded-full bg-red-600 hover:bg-red-700 transition-all duration-200"
+>
           {isPlaying ? <Pause size={22} /> : <Play size={22} />}
         </button>
 
@@ -361,25 +403,57 @@ onEnded={() => {
           disabled={isWatchParty && !isHost}
           className="p-2 rounded-full hover:bg-white/20 transition-all duration-200"
         >
-          <SkipForward size={10} />
+          <SkipForward size={18} />
         </button>
       </div>
 
-      <div className="flex items-center gap-2">
-        <span className="text-lg">
-          <Volume2 size={20} />
-        </span>
+     <div
+  className="flex items-center gap-2"
+>
+  <button
+  onClick={(e) => {
+    toggleMute();
+  }}
+  className="text-lg"
+>
+  {isMuted ? <VolumeX size={20} /> : <Volume2 size={20} />}
+</button>
 
-        <input
-          type="range"
-          min={0}
-          max={1}
-          step={0.01}
-          value={volume}
-          onChange={(e) => handleVolume(Number(e.target.value))}
-          className="w-24 accent-red-600 cursor-pointer"
-        />
-      </div>
+  <input
+    type="range"
+    min={0}
+    max={1}
+    step={0.01}
+    value={volume}
+    onChange={(e) => handleVolume(Number(e.target.value))}
+    className="w-24 accent-red-600 cursor-pointer"
+  />
+</div>
+
+<select
+  value={playbackRate}
+  onChange={(e) =>
+    changePlaybackSpeed(Number(e.target.value))
+  }
+  className="
+bg-zinc-700
+text-white
+rounded-md
+px-3
+py-1
+text-sm
+border-none
+outline-none
+cursor-pointer
+hover:bg-zinc-600
+"
+>
+  <option value={0.5}>0.5×</option>
+  <option value={1}>1×</option>
+  <option value={1.25}>1.25×</option>
+  <option value={1.5}>1.5×</option>
+  <option value={2}>2×</option>
+</select>
 
       <button
         onClick={toggleFullscreen}
@@ -388,8 +462,9 @@ onEnded={() => {
         <Maximize size={20} />
       </button>
 
-      <span>{formatTime(currentTime)}</span>
-      <span>{formatTime(duration)}</span>
+      <span className="text-sm font-medium whitespace-nowrap">
+  {formatTime(currentTime)} / {formatTime(duration)}
+</span>
     </div>
   </div>
   )}

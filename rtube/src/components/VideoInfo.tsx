@@ -186,7 +186,7 @@ fetch(fileUrl)
 
   return (
     <div className="space-y-4">
-        <h1 className="text-xl font-semibold">{video.videotitle}</h1>
+        <h1 className="text-xl font-semibold text-black dark:text-white">{video.videotitle}</h1>
 
         <div className="flex items-start justify-between gap-4 flex-wrap">
           <div className="flex items-center gap-2 flex-wrap">
@@ -194,13 +194,13 @@ fetch(fileUrl)
               <AvatarFallback>{video.videochanel[0]}</AvatarFallback>
             </Avatar>
             <div>
-              <h3 className="font-medium">{video.videochanel}</h3>
-              <p className="text-sm text-gray-600">1.2M subscribers</p>
+              <h3 className="font-medium text-black dark:text-white">{video.videochanel}</h3>
+              <p className="text-gray-600 dark:text-gray-400">1.2M subscribers</p>
             </div>
             <Button className="ml-4">Subscribe</Button>
           </div>
           <div className="flex items-center gap-2">
-            <div className="flex items-center bg-gray-100 rounded-full">
+            <div className="flex items-center bg-gray-100 dark:bg-zinc-800 rounded-full">
               <Button
                 variant="ghost"
                 size="sm"
@@ -232,7 +232,7 @@ fetch(fileUrl)
             <Button
               variant="ghost"
               size="sm"
-              className={`bg-gray-100 rounded-full ${
+              className={`bg-gray-100 dark:bg-zinc-800 rounded-full ${
                 isWatchLater ? "text-primary" : ""
               }`}
               onClick={handleWatchLater}
@@ -243,7 +243,7 @@ fetch(fileUrl)
             <Button
               variant="ghost"
               size="sm"
-              className="bg-gray-100 rounded-full"
+              className="bg-gray-100 dark:bg-zinc-800 rounded-full"
             >
               <Share className="w-5 h-5 mr-2" />
               Share
@@ -252,7 +252,7 @@ fetch(fileUrl)
             <Button
   variant="ghost"
   size="sm"
-  className="bg-gray-100 rounded-full flex-none w-auto  "
+  className="bg-gray-100 dark:bg-zinc-800 rounded-full flex-none w-auto  "
   onClick={handleStartWatchParty}
 >
   <Users className="w-5 h-5 mr-2" />
@@ -261,7 +261,7 @@ fetch(fileUrl)
  <Button
   variant="ghost"
   size="sm"
-  className="bg-gray-100 rounded-full"
+  className="bg-gray-100 dark:bg-zinc-800 rounded-full"
   onClick={handleDownload}
 >
   <Download className="w-5 h-5 mr-2" />
@@ -271,18 +271,18 @@ fetch(fileUrl)
             <Button
               variant="ghost"
               size="icon"
-              className="bg-gray-100 rounded-full"
+              className="bg-gray-100 dark:bg-zinc-800 rounded-full"
             >
               <MoreHorizontal className="w-5 h-5" />
             </Button>
           </div>
         </div>
-        <div className="bg-gray-100 rounded-lg p-4">
-          <div className="flex gap-4 text-sm font-medium mb-2">
+        <div className="bg-gray-100 dark:bg-zinc-800 rounded-lg p-4">
+          <div className="flex gap-4 text-sm font-medium text-black dark:text-white mb-2">
             <span>{video.views.toLocaleString()} views</span>
             <span>{formatDistanceToNow(new Date(video.createdAt))} ago</span>
           </div>
-          <div className={`text-sm ${showFullDescription ? "" : "line-clamp-3"}`}>
+          <div className={`text-sm text-gray-700 dark:text-gray-300 ${showFullDescription ? "" : "line-clamp-3"}`}>
             <p>
               Sample video description. This would contain the actual video
               description from the database.

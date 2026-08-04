@@ -18,7 +18,7 @@ export default function LocalVideo({
         video: true,
         audio: true,
       });
-
+console.log("Local stream id:", stream.id);
       onStreamReady(stream);
 
       if (videoRef.current) {

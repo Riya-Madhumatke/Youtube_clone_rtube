@@ -151,7 +151,15 @@ console.log(
     }))
 );
 if (sender) {
+  console.log("===== BEFORE =====");
+peerConnection.current?.getSenders().forEach((s) => {
+  console.log(s.track?.kind, s.track?.label);
+});
   await sender.replaceTrack(screenTrack);
+  console.log("===== AFTER =====");
+peerConnection.current?.getSenders().forEach((s) => {
+  console.log(s.track?.kind, s.track?.label);
+});
   console.log("✅ Replaced camera with screen track");
 }
     console.log("Screen Track:", screenTrack);
