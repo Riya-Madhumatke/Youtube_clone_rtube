@@ -1,14 +1,14 @@
 import { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useRouter } from "next/router";
 
 export default function WatchPartyHome() {
   const [partyCode, setPartyCode] = useState("");
-  const navigate = useNavigate();
+  const router = useRouter();
 
   const handleJoin = () => {
     if (!partyCode.trim()) return;
 
-    navigate(`/watch-party/${partyCode}`);
+    router.push(`/watch-party/${partyCode}`);
   };
 
   return (

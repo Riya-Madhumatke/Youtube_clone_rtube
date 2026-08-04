@@ -91,27 +91,28 @@ const handleKeyDown = (e: KeyboardEvent<HTMLInputElement>, index: number) => {
   }
 };
 
-const handleEnter = (e) => {
+const handleEnter = (
+  e: React.KeyboardEvent<HTMLInputElement>
+) => {
   if (e.key === "Enter") {
     handleVerify();
   }
 };
 
-const handlePaste = (e) => {
+const handlePaste = (
+  e: React.ClipboardEvent<HTMLInputElement>
+) => {
   e.preventDefault();
 
   const pastedData = e.clipboardData.getData("text").trim();
 
-  // Only accept exactly 6 digits
   if (!/^\d{6}$/.test(pastedData)) return;
 
   const digits = pastedData.split("");
   setOtp(digits);
 
-  // Focus the last box
   inputRefs.current[5]?.focus();
 };
-
   const handleVerify = async () => {
     const enteredOtp = otp.join("");
 
