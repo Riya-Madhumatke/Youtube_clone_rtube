@@ -1,11 +1,21 @@
 import nodemailer from "nodemailer";
 
 const transporter = nodemailer.createTransport({
-  service: "gmail",
+  host: "smtp-relay.brevo.com",
+  port: 2525,
+  secure: false,
   auth: {
-    user: process.env.EMAIL_USER,
-    pass: process.env.EMAIL_PASS,
+    user: process.env.BREVO_SMTP_USER,
+    pass: process.env.BREVO_SMTP_PASS,
   },
+});
+
+transporter.verify(function (error, success) {
+  if (error) {
+    console.error("SMTP Verify Error:", error);
+  } else {
+    console.log("SMTP Server is ready.");
+  }
 });
 
 export const sendSubscriptionEmail = async ({
@@ -17,7 +27,7 @@ export const sendSubscriptionEmail = async ({
   orderId,
 }) => {
   const mailOptions = {
-    from: `"RTube" <${process.env.EMAIL_USER}>`,
+    from: `"RTube" <${process.env.EMAIL_FROM}>`,
     to: email,
     subject: "🎉 RTube Premium Subscription Activated",
     html: `
@@ -72,7 +82,7 @@ export const sendSubscriptionEmail = async ({
 
 export const sendOTPEmail = async (email, otp) => {
   const mailOptions = {
-    from: `"RTube" <${process.env.EMAIL_USER}>`,
+    from: `"RTube" <${process.env.EMAIL_FROM}>`,
     to: email,
     subject: "RTube Login Verification Code",
     html: `
@@ -96,5 +106,12 @@ export const sendOTPEmail = async (email, otp) => {
     `,
   };
 
-  await transporter.sendMail(mailOptions);
+  try {
+    await transporter.sendMail(mailOptions);
+    console.log("Email sent successfully");
+  } catch (err) {
+    console.error("SMTP ERROR:");
+    console.error(err);
+    throw err;
+  }
 };

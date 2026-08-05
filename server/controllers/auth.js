@@ -21,7 +21,7 @@ const generateOTP = () => {
 };
 
 export const login = async (req, res) => {
-  const { email, name, image, deviceID, deviceId } = req.body;
+  const { email, name, image, deviceId } = req.body;
 
   if (!email) {
     return res.status(400).json({
@@ -33,25 +33,46 @@ export const login = async (req, res) => {
   try {
     let existingUser = await users.findOne({ email });
 
+    // NEW USER
     if (!existingUser) {
-      const newUser = await users.create({
+      const otp = generateOTP();
+
+      existingUser = await users.create({
         email,
         name,
         image,
         theme: getDefaultTheme(),
+        otp,
+        otpExpires: new Date(Date.now() + 5 * 60 * 1000),
+        trustedDevices: [],
       });
 
-      return res.status(201).json({
+try {
+  await sendOTPEmail(existingUser.email, otp);
+} catch (error) {
+  console.error("OTP Email Error:", error);
+
+  return res.status(500).json({
+    success: false,
+    message: "Failed to send OTP email. Please try again later.",
+  });
+}
+      return res.status(200).json({
         success: true,
-        result: newUser,
+        otpRequired: true,
+        userId: existingUser._id,
+        message: "OTP sent",
       });
     }
 
-    const trustedDeviceId = deviceID || deviceId;
+    // CHECK TRUSTED DEVICE
     const isTrustedDevice =
-      trustedDeviceId &&
-      existingUser.trustedDevices?.some((device) => device.deviceId === trustedDeviceId);
+      deviceId &&
+      existingUser.trustedDevices.some(
+        (device) => device.deviceId === deviceId
+      );
 
+    // NEW DEVICE → SEND OTP
     if (!isTrustedDevice) {
       const otp = generateOTP();
 
@@ -59,24 +80,31 @@ export const login = async (req, res) => {
       existingUser.otpExpires = new Date(Date.now() + 5 * 60 * 1000);
 
       await existingUser.save();
+
       await sendOTPEmail(existingUser.email, otp);
 
       return res.status(200).json({
         success: true,
         otpRequired: true,
         userId: existingUser._id,
-        message: "OTP sent to your email",
+        message: "OTP sent",
       });
     }
 
+    // TRUSTED DEVICE
     return res.status(200).json({
       success: true,
       otpRequired: false,
       result: existingUser,
     });
+
   } catch (error) {
     console.error("Login error:", error);
-    return res.status(500).json({ message: "Something went wrong" });
+
+    return res.status(500).json({
+      success: false,
+      message: "Something went wrong",
+    });
   }
 };
 
@@ -114,10 +142,16 @@ export const verifyOTP = async (req, res) => {
       });
     }
 
-    user.trustedDevices.push({
-      deviceId,
-      lastLogin: new Date(),
-    });
+    const alreadyExists = user.trustedDevices.some(
+  (device) => device.deviceId === deviceId
+);
+
+if (!alreadyExists) {
+  user.trustedDevices.push({
+    deviceId,
+    lastLogin: new Date(),
+  });
+}
 
     user.otp = null;
     user.otpExpires = null;

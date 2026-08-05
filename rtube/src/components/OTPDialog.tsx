@@ -12,7 +12,12 @@ interface OTPDialogProps {
   onClose: () => void;
 }
 
-const OTPDialog = ({ open, pendingUser, onSuccess, onClose }: OTPDialogProps) => {
+const OTPDialog = ({
+  open,
+  pendingUser,
+  onSuccess,
+  onClose,
+}: OTPDialogProps) => {
   const [otp, setOtp] = useState<string[]>(["", "", "", "", "", ""]);
   const [loading, setLoading] = useState(false);
   const [cooldown, setCooldown] = useState(30);
@@ -21,105 +26,99 @@ const OTPDialog = ({ open, pendingUser, onSuccess, onClose }: OTPDialogProps) =>
   const inputRefs = useRef<Array<HTMLInputElement | null>>([]);
 
   const startCooldown = () => {
-  setCooldown(30);
+    setCooldown(30);
 
-  const interval = setInterval(() => {
-    setCooldown((prev) => {
-      if (prev <= 1) {
-        clearInterval(interval);
-        return 0;
-      }
+    const interval = setInterval(() => {
+      setCooldown((prev) => {
+        if (prev <= 1) {
+          clearInterval(interval);
+          return 0;
+        }
 
-      return prev - 1;
-    });
-  }, 1000);
+        return prev - 1;
+      });
+    }, 1000);
 
-  return interval;
-};
-
+    return interval;
+  };
 
   useEffect(() => {
-  if (!open) return;
-  setTimeout(() => {
-  inputRefs.current[0]?.focus();
-}, 100);
+    if (!open) return;
+    setTimeout(() => {
+      inputRefs.current[0]?.focus();
+    }, 100);
 
-  const interval = startCooldown();
+    const interval = startCooldown();
 
-  return () => clearInterval(interval);
-}, [open]);
+    return () => clearInterval(interval);
+  }, [open]);
 
   if (!open) return null;
 
+  const handleResend = async () => {
+    try {
+      setResending(true);
 
-const handleResend = async () => {
-  try {
-    setResending(true);
+      await axiosInstance.post("/user/resend-otp", {
+        userId: pendingUser.userId,
+      });
 
-    await axiosInstance.post("/user/resend-otp", {
-      userId: pendingUser.userId,
-    });
+      toast.success("A new OTP has been sent to your email.");
+      startCooldown();
+    } catch (error: unknown) {
+      const message =
+        (error as any)?.response?.data?.message ||
+        (error instanceof Error ? error.message : "Failed to resend OTP");
+      toast.error(message);
+    } finally {
+      setResending(false);
+    }
+  };
 
-    toast.success("A new OTP has been sent to your email.");
-    startCooldown();
+  const handleChange = (value: string, index: number) => {
+    if (!/^\d?$/.test(value)) return;
 
-  } catch (error: unknown) {
-    const message =
-      (error as any)?.response?.data?.message ||
-      (error instanceof Error ? error.message : "Failed to resend OTP");
-toast.error(message);
-  } finally {
-    setResending(false);
-  }
-};
+    const newOtp = [...otp];
+    newOtp[index] = value;
+    setOtp(newOtp);
 
-const handleChange = (value: string, index: number) => {
-  if (!/^\d?$/.test(value)) return;
+    if (value && index < 5) {
+      inputRefs.current[index + 1]?.focus();
+    }
+  };
 
-  const newOtp = [...otp];
-  newOtp[index] = value;
-  setOtp(newOtp);
+  const handleKeyDown = (e: KeyboardEvent<HTMLInputElement>, index: number) => {
+    if (e.key === "Backspace" && !otp[index] && index > 0) {
+      inputRefs.current[index - 1]?.focus();
+    }
+  };
 
-  if (value && index < 5) {
-    inputRefs.current[index + 1]?.focus();
-  }
-};
+  const handleEnter = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === "Enter") {
+      handleVerify();
+    }
+  };
 
-const handleKeyDown = (e: KeyboardEvent<HTMLInputElement>, index: number) => {
-  if (e.key === "Backspace" && !otp[index] && index > 0) {
-    inputRefs.current[index - 1]?.focus();
-  }
-};
+  const handlePaste = (e: React.ClipboardEvent<HTMLInputElement>) => {
+    e.preventDefault();
 
-const handleEnter = (
-  e: React.KeyboardEvent<HTMLInputElement>
-) => {
-  if (e.key === "Enter") {
-    handleVerify();
-  }
-};
+    const pastedData = e.clipboardData.getData("text").trim();
 
-const handlePaste = (
-  e: React.ClipboardEvent<HTMLInputElement>
-) => {
-  e.preventDefault();
+    if (!/^\d{6}$/.test(pastedData)) return;
 
-  const pastedData = e.clipboardData.getData("text").trim();
+    const digits = pastedData.split("");
+    setOtp(digits);
 
-  if (!/^\d{6}$/.test(pastedData)) return;
+    inputRefs.current[5]?.focus();
+  };
 
-  const digits = pastedData.split("");
-  setOtp(digits);
-
-  inputRefs.current[5]?.focus();
-};
   const handleVerify = async () => {
     const enteredOtp = otp.join("");
 
-if (enteredOtp.length !== 6) {
-  toast.error("Please enter the complete 6-digit OTP.");
-  return;
-}
+    if (enteredOtp.length !== 6) {
+      toast.error("Please enter the complete 6-digit OTP.");
+      return;
+    }
     try {
       setLoading(true);
 
@@ -130,12 +129,11 @@ if (enteredOtp.length !== 6) {
       });
       toast.success("OTP verified successfully!");
       onSuccess(response.data.result);
-
     } catch (error: unknown) {
       const message =
         (error as any)?.response?.data?.message ||
         (error instanceof Error ? error.message : "OTP verification failed");
-toast.error(message);
+      toast.error(message);
     } finally {
       setLoading(false);
     }
@@ -144,77 +142,65 @@ toast.error(message);
   return (
     <div className="fixed inset-0 bg-black/60 flex justify-center items-center z-50">
       <div className="bg-background p-6 rounded-xl w-[400px] shadow-xl">
-
-        <h2 className="text-2xl font-bold mb-4">
-          Verify Login
-        </h2>
+        <h2 className="text-2xl font-bold mb-4">Verify Login</h2>
 
         <p className="text-muted-foreground mb-4">
           Enter the OTP sent to your email.
         </p>
 
         <div className="flex justify-between mb-4">
-  {otp.map((digit, index) => (
-    <input
-      key={index}
-      ref={(el) => {
-        inputRefs.current[index] = el;
-      }}
-      type="text"
-      inputMode="numeric"
-      maxLength={1}
-      value={digit}
-      onChange={(e) => handleChange(e.target.value, index)}
-      onKeyDown={(e) =>  {
-        handleKeyDown(e, index);
-        handleEnter(e);
-      }}
-      onPaste={handlePaste}
-      className="w-12 h-12 text-center text-xl border rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500"
-    />
-  ))}
-</div>
-
+          {otp.map((digit, index) => (
+            <input
+              key={index}
+              ref={(el) => {
+                inputRefs.current[index] = el;
+              }}
+              type="text"
+              inputMode="numeric"
+              maxLength={1}
+              value={digit}
+              onChange={(e) => handleChange(e.target.value, index)}
+              onKeyDown={(e) => {
+                handleKeyDown(e, index);
+                handleEnter(e);
+              }}
+              onPaste={handlePaste}
+              className="w-12 h-12 text-center text-xl border rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500"
+            />
+          ))}
+        </div>
 
         <div className="text-center mb-4">
-  {cooldown > 0 ? (
-    <p className="text-sm text-gray-500">
-      Resend OTP in {cooldown}s
-    </p>
-  ) : (
-    <button
-      onClick={handleResend}
-      disabled={resending}
-      className="text-red-600 hover:underline"
-    >
-      {resending ? "Sending..." : "Resend OTP"}
-    </button>
-  )}
-</div>
+          {cooldown > 0 ? (
+            <p className="text-sm text-gray-500">Resend OTP in {cooldown}s</p>
+          ) : (
+            <button
+              onClick={handleResend}
+              disabled={resending}
+              className="text-red-600 hover:underline"
+            >
+              {resending ? "Sending..." : "Resend OTP"}
+            </button>
+          )}
+        </div>
 
         <div className="flex gap-2 justify-end">
-
-          <button
-            onClick={onClose}
-            className="px-4 py-2 rounded border"
-          >
+          <button onClick={onClose} className="px-4 py-2 rounded border">
             Cancel
           </button>
 
-        <button
-  onClick={handleVerify}
-  disabled={loading || !isOtpComplete}
-  className={`px-4 py-2 rounded text-white transition ${
-    loading || !isOtpComplete
-      ? "bg-gray-400 cursor-not-allowed"
-      : "bg-red-600 hover:bg-red-700"
-  }`}
->
-  {loading ? "Verifying..." : "Verify"}
-</button>
-
+          <button
+            onClick={handleVerify}
+            disabled={loading || !isOtpComplete}
+            className={`px-4 py-2 rounded text-white transition ${
+              loading || !isOtpComplete
+                ? "bg-gray-400 cursor-not-allowed"
+                : "bg-red-600 hover:bg-red-700"
+            }`}
+          >
+            {loading ? "Verifying..." : "Verify"}
+          </button>
         </div>
-
       </div>
     </div>
   );
